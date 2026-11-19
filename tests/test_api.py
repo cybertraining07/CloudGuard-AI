@@ -210,3 +210,31 @@ def test_dashboard_data_endpoint(tmp_path, monkeypatch):
     assert data["latest"]["report_title"] == "Test Assessment"
     assert data["history"][0]["filename"] == "cloudguard_report_test.json"
     assert data["history"][0]["total_findings"] == 2
+
+
+def test_pdf_report_download_endpoint(tmp_path, monkeypatch):
+    monkeypatch.setattr(main, "REPORTS_DIR", tmp_path)
+
+    report_path = tmp_path / "cloudguard_report_pdf_test.json"
+    report_path.write_text(
+        '{"report_title":"Test Assessment",'
+        '"project":"CloudGuard AI",'
+        '"generated_at":"2026-01-01T00:00:00+00:00",'
+        '"assessment_summary":{},'
+        '"results":{'
+        '"risk_analysis":{"findings":[]},'
+        '"cloud_scan":{"findings":[]},'
+        '"iam_analysis":{"findings":[]},'
+        '"attack_path_analysis":{"attack_paths":[]},'
+        '"recommendations":{"recommendations":[]}'
+        '}}',
+        encoding="utf-8"
+    )
+
+    response = client.get(
+        "/reports/pdf/cloudguard_report_pdf_test.json"
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    assert response.content.startswith(b"%PDF")

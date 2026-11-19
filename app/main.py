@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 from fastapi.responses import FileResponse
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from app.scanners.cloud_config import scan_cloud_resources
@@ -11,6 +11,7 @@ from app.analyzers.attack_path import analyze_attack_paths
 from app.analyzers.risk_prioritizer import prioritize_risks
 from app.analyzers.recommendation_engine import generate_recommendations
 from app.reports.report_generator import generate_security_report
+from app.reports.pdf_generator import generate_pdf_report
 
 
 app = FastAPI(
@@ -316,3 +317,44 @@ def dashboard_data():
         "latest": latest,
         "history": valid_reports[:10]
     }
+
+# ==========================================
+# PDF SECURITY REPORT DOWNLOAD
+# ==========================================
+
+@app.get("/reports/pdf/{filename}")
+def download_pdf_report(filename: str):
+
+    # Validate the requested report filename
+    if (
+        Path(filename).name != filename
+        or not filename.startswith("cloudguard_report_")
+        or not filename.endswith(".json")
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid report filename"
+        )
+
+    source_path = REPORTS_DIR / filename
+
+    if not source_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Report not found"
+        )
+
+    try:
+        pdf_path = Path(generate_pdf_report(source_path))
+
+    except (json.JSONDecodeError, OSError, ValueError) as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="Could not generate PDF report"
+        ) from exc
+
+    return FileResponse(
+        path=pdf_path,
+        media_type="application/pdf",
+        filename=pdf_path.name
+    )

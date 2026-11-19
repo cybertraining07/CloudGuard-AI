@@ -1,10 +1,10 @@
-
 # CloudGuard AI
 
 **Cloud Security Posture and Attack Path Analyzer**
+
 CloudGuard AI is a Python-based cybersecurity project designed to assess cloud configuration risks, identify IAM security weaknesses, detect potential attack paths, prioritize security findings, and generate remediation recommendations.
 
-The project demonstrates an integrated cloud security assessment workflow using FastAPI, Python, and automated security analysis modules.
+The project demonstrates an integrated cloud security assessment workflow using Python, FastAPI, automated security analysis modules, and security reporting.
 
 ## Project Overview
 
@@ -12,15 +12,20 @@ CloudGuard AI combines multiple security assessment components into one API-driv
 
 Its objective is to help security analysts identify misconfigurations, excessive privileges, insecure resource exposure, and potential paths to sensitive data.
 
+The platform includes a web-based security dashboard for reviewing assessment results and downloading PDF reports.
+
 ## Key Features
 
 - Cloud configuration security scanning.
 - IAM privilege and account security analysis.
-- Attack path detection using explicit identity-resource relationships.
+- Attack path detection using explicitly supplied identity-resource relationships.
 - Security risk prioritization.
 - Automated remediation recommendations.
 - Full security assessment through a single API endpoint.
-- Automatic JSON security report generation.
+- Automatic timestamped JSON report generation.
+- PDF security assessment report generation.
+- Interactive security dashboard.
+- Assessment history and report downloads.
 - Automated testing with Pytest.
 
 ## Architecture
@@ -29,7 +34,7 @@ Its objective is to help security analysts identify misconfigurations, excessive
                  CloudGuard AI
                        |
                        v
-                 FastAPI Application
+                FastAPI Application
                        |
           +------------+------------+
           |            |            |
@@ -39,16 +44,21 @@ Its objective is to help security analysts identify misconfigurations, excessive
           +------------+------------+
                        |
                        v
-               Risk Prioritization
+              Risk Prioritization
                        |
                        v
-              Recommendation Engine
+             Recommendation Engine
                        |
                        v
                 Report Generator
                        |
-                       v
-                 JSON Reports
+                +------+------+
+                |             |
+                v             v
+            JSON Reports   PDF Reports
+                |
+                v
+           Security Dashboard
 ```
 
 ## Technology Stack
@@ -59,6 +69,8 @@ Its objective is to help security analysts identify misconfigurations, excessive
 | FastAPI | REST API |
 | Pydantic | Request validation |
 | Uvicorn | API server |
+| Boto3 | AWS SDK dependency for future integration |
+| ReportLab | PDF report generation |
 | Pytest | Automated testing |
 | JSON | Assessment data and reports |
 | Linux / Kali Linux | Development environment |
@@ -79,14 +91,20 @@ CloudGuard-AI/
 │   │   └── cloud_config.py
 │   │
 │   ├── reports/
-│   │   └── report_generator.py
+│   │   ├── report_generator.py
+│   │   └── pdf_generator.py
 │   │
 │   └── main.py
 │
+├── dashboard/
+│   └── index.html
+│
 ├── data/
 ├── docs/
+│   └── screenshots/
 ├── reports/
 ├── tests/
+│   └── test_api.py
 │
 ├── requirements.txt
 ├── README.md
@@ -97,7 +115,7 @@ CloudGuard-AI/
 
 ### 1. Cloud Configuration Scanner
 
-Checks cloud resource configurations for:
+Checks supplied cloud resource configurations for:
 
 - Publicly accessible storage.
 - Disabled encryption.
@@ -115,12 +133,7 @@ Identifies:
 
 Identifies potential paths between explicitly associated identities and sensitive resources.
 
-It considers:
-
-- Administrator privileges.
-- MFA configuration.
-- Public resource exposure.
-- Sensitive data classification.
+The current implementation uses supplied identity-resource relationships rather than automatically calculating complete effective permissions.
 
 ### 4. Risk Prioritization Engine
 
@@ -133,15 +146,15 @@ Assigns severity-based risk scores:
 | MEDIUM | 50 | MODERATE |
 | LOW | 25 | LOW |
 
-These are prioritization scores, not probabilities of exploitation.
+These are rule-based prioritization scores, not probabilities of exploitation.
 
 ### 5. Recommendation Engine
 
-Generates remediation recommendations for detected security findings.
+Generates remediation recommendations and verification steps for detected security findings.
 
-### 6. Report Generator
+### 6. JSON and PDF Report Generation
 
-Automatically generates timestamped JSON reports containing:
+CloudGuard AI generates timestamped JSON reports containing:
 
 - Assessment summary.
 - Cloud configuration findings.
@@ -150,9 +163,29 @@ Automatically generates timestamped JSON reports containing:
 - Risk prioritization.
 - Remediation recommendations.
 
+The PDF generator converts saved JSON assessments into structured security reports containing assessment information, findings, attack paths, and remediation recommendations.
+
+PDF reports can be downloaded through the API or directly from the dashboard.
+
+### 7. Security Dashboard
+
+The interactive dashboard provides:
+
+- Critical, high, and medium finding counts.
+- Assessment summary.
+- Prioritized security findings.
+- Detected attack paths.
+- Remediation recommendations.
+- Recent assessment history.
+- PDF report download links.
+
 ## Installation
 
-Clone the repository or download the project.
+Clone the repository:
+
+```bash
+git clone https://github.com/cybertraining07/CloudGuard-AI.git
+```
 
 Navigate into the project directory:
 
@@ -186,11 +219,17 @@ Start the FastAPI server:
 uvicorn app.main:app --reload --port 8001
 ```
 
-Open the API documentation:
+Open the following addresses in your browser:
+
+**API documentation**
 
 http://127.0.0.1:8001/docs
 
-Health endpoint:
+**Security dashboard**
+
+http://127.0.0.1:8001/dashboard
+
+**Health endpoint**
 
 http://127.0.0.1:8001/health
 
@@ -198,15 +237,18 @@ http://127.0.0.1:8001/health
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | / | Project information |
-| GET | /health | Health check |
-| POST | /scan/config | Cloud configuration scan |
-| POST | /analyze/iam | IAM analysis |
-| POST | /analyze/attack-path | Attack path analysis |
-| POST | /prioritize/risks | Risk prioritization |
-| POST | /recommendations/generate | Generate recommendations |
-| POST | /reports/generate | Generate security report |
-| POST | /assess/full | Complete assessment |
+| GET | `/` | Project information |
+| GET | `/health` | Health check |
+| POST | `/scan/config` | Cloud configuration scan |
+| POST | `/analyze/iam` | IAM analysis |
+| POST | `/analyze/attack-path` | Attack path analysis |
+| POST | `/prioritize/risks` | Risk prioritization |
+| POST | `/recommendations/generate` | Generate recommendations |
+| POST | `/reports/generate` | Generate JSON security report |
+| POST | `/assess/full` | Complete security assessment |
+| GET | `/dashboard` | Interactive security dashboard |
+| GET | `/dashboard-data` | Dashboard assessment data |
+| GET | `/reports/pdf/{filename}` | Generate and download PDF report |
 
 ## Running Tests
 
@@ -218,11 +260,14 @@ python -m pytest -v
 
 ### Current Test Results
 
-The development test run completed successfully:
+Latest development test run:
 
-- 30 tests passed.
-- 0 tests failed.
-- Full assessment integration test passed.
+- **33 tests passed.**
+- **0 tests failed.**
+- PDF report download endpoint tested.
+- Dashboard endpoint tested.
+- Dashboard data endpoint tested.
+- Full assessment integration tested.
 
 ## Example Use Case
 
@@ -235,6 +280,8 @@ A simulated cloud environment contains:
 
 CloudGuard AI analyzes the supplied configuration and identity-resource relationships, detects potential security risks, prioritizes findings, and generates remediation recommendations.
 
+The assessment results are saved as JSON and can be exported as PDF reports.
+
 ## Security Limitations
 
 This project currently operates using supplied assessment data and local simulated environments.
@@ -243,34 +290,39 @@ It does not yet perform live AWS or Azure security assessments, automatically re
 
 Risk scores are rule-based severity values rather than calibrated exploitation probabilities.
 
+The current implementation should be considered a security assessment prototype, not a production cloud security platform.
+
 Only use the platform against systems and environments for which you have authorization.
 
 ## Future Development Roadmap
 
-- AWS security assessment integration using boto3.
+- AWS security assessment integration using Boto3.
 - Azure cloud security integration.
-- Cloud IAM policy analysis.
+- Automated cloud IAM policy analysis.
 - Advanced attack graph modeling.
 - CVSS-informed risk scoring.
-- Dashboard for security findings.
-- PDF assessment reports.
 - SIEM and SOC workflow integration.
 - AI-assisted security finding analysis.
+- Additional cloud security assessment capabilities.
 
 ## Project Purpose
 
-CloudGuard AI is a practical cybersecurity portfolio project demonstrating Python development, API engineering, cloud security concepts, IAM analysis, attack-path modeling, automated security testing, and security reporting.
+CloudGuard AI is a practical cybersecurity portfolio project demonstrating Python development, API engineering, cloud security concepts, IAM analysis, attack-path modeling, automated security testing, dashboard development, and security reporting.
 
 **Project Status:** Active Development
 
-**Version:** 1.1.0
+**Version:** 1.2.0
+
 ## Screenshots
 
 ### API Documentation
+
 ![CloudGuard AI Swagger UI](docs/screenshots/cloudguard-swagger.png)
 
 ### Full Assessment Endpoint
+
 ![CloudGuard AI Full Assessment Endpoint](docs/screenshots/cloudguard-assessment-endpoint.png)
 
 ### Full Security Assessment Results
+
 ![CloudGuard AI Full Security Assessment](docs/screenshots/cloudguard-full-assessment.png)

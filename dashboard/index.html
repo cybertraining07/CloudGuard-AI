@@ -221,6 +221,9 @@ async function loadDashboard() {
         <strong>${safe(h.report_title)}</strong>
         <p>${safe(h.generated_at)} · ${safe(h.total_findings)} prioritized findings</p>
         <p>${safe(h.filename)}</p>
+        <p><a href="/reports/pdf/${encodeURIComponent(h.filename)}"
+              style="color:#60a5fa;font-weight:600"
+              download>Download PDF report</a></p>
       </div>`, "No assessment history available.");
 
     el("generated").textContent =
