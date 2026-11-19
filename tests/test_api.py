@@ -1,4 +1,5 @@
 
+from app import main
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -175,3 +176,37 @@ def test_full_assessment_endpoint():
         "reports/cloudguard_report_"
     )
     assert assessment["report_file"].endswith(".json")
+
+
+def test_dashboard_endpoint():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "CloudGuard AI" in response.text
+
+
+def test_dashboard_data_endpoint(tmp_path, monkeypatch):
+    monkeypatch.setattr(main, "REPORTS_DIR", tmp_path)
+
+    report_path = tmp_path / "cloudguard_report_test.json"
+
+    report_path.write_text(
+        '{"report_title":"Test Assessment",'
+        '"generated_at":"2026-01-01T00:00:00+00:00",'
+        '"results":{"risk_analysis":{"findings":['
+        '{"severity":"HIGH"},{"severity":"MEDIUM"}]}}}',
+        encoding="utf-8"
+    )
+
+    response = client.get("/dashboard-data")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["status"] == "success"
+    assert data["total_reports"] == 1
+    assert data["latest"]["report_title"] == "Test Assessment"
+    assert data["history"][0]["filename"] == "cloudguard_report_test.json"
+    assert data["history"][0]["total_findings"] == 2

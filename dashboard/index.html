@@ -1,0 +1,237 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CloudGuard AI | Security Dashboard</title>
+<style>
+:root {
+  --bg:#0b1120; --panel:#131e30; --panel2:#18263b;
+  --text:#e8eef8; --muted:#91a2ba; --line:#26364d;
+  --blue:#60a5fa; --red:#fb7185; --orange:#fbbf24;
+  --green:#34d399; --purple:#a78bfa;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+font-family:Inter,Arial,sans-serif}
+header{padding:22px 5%;border-bottom:1px solid var(--line);
+display:flex;justify-content:space-between;align-items:center;gap:15px}
+.brand{font-size:21px;font-weight:750}
+.brand span{color:var(--blue)}
+.status{color:var(--green);font-size:13px}
+main{max-width:1450px;margin:auto;padding:30px 5%}
+.heading{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}
+h1{font-size:27px;margin:0 0 8px}
+.subtitle,.muted{color:var(--muted);font-size:13px}
+button{background:#2563eb;color:white;border:0;border-radius:7px;
+padding:11px 16px;cursor:pointer;font-weight:600}
+button:hover{background:#1d4ed8}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:26px 0}
+.card,.panel{background:var(--panel);border:1px solid var(--line);
+border-radius:12px;padding:20px}
+.card small{color:var(--muted)}
+.number{font-size:32px;font-weight:750;margin-top:12px}
+.critical{color:var(--red)} .high{color:var(--orange)}
+.medium{color:var(--blue)} .low{color:var(--green)}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.panel h2{font-size:17px;margin:0 0 18px}
+.bar-row{display:grid;grid-template-columns:85px 1fr 35px;
+align-items:center;gap:10px;margin:15px 0;font-size:13px}
+.bar{height:10px;background:var(--panel2);border-radius:10px;overflow:hidden}
+.fill{height:100%;border-radius:10px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:620px}
+th,td{text-align:left;padding:13px 10px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:600}
+td{vertical-align:top}
+.badge{display:inline-block;padding:5px 9px;border-radius:20px;
+font-size:11px;font-weight:700;background:var(--panel2)}
+.badge.CRITICAL{color:var(--red)}
+.badge.HIGH{color:var(--orange)}
+.badge.MEDIUM{color:var(--blue)}
+.badge.LOW{color:var(--green)}
+.item{padding:14px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border:0}
+.item strong{display:block;margin-bottom:7px}
+.item p{font-size:13px;color:var(--muted);line-height:1.6;margin:5px 0}
+.empty{color:var(--muted);font-size:13px;padding:12px 0}
+footer{text-align:center;color:var(--muted);padding:25px;font-size:12px}
+@media(max-width:850px){.cards{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.layout{grid-template-columns:1fr}
+header{align-items:flex-start;flex-direction:column}
+.cards{gap:10px}.card{padding:14px}.number{font-size:26px}
+main{padding:22px 4%}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span>◈</span> CloudGuard AI</div>
+  <div class="status">● Local assessment dashboard</div>
+</header>
+
+<main>
+  <section class="heading">
+    <div>
+      <h1>Security Overview</h1>
+      <div class="subtitle">Cloud posture, identity security and attack-path monitoring</div>
+      <div class="muted" id="generated">Loading assessment...</div>
+    </div>
+    <button onclick="loadDashboard()">↻ Refresh assessment</button>
+  </section>
+
+  <section class="cards">
+    <div class="card"><small>Critical findings</small><div class="number critical" id="critical">—</div></div>
+    <div class="card"><small>High findings</small><div class="number high" id="high">—</div></div>
+    <div class="card"><small>Medium findings</small><div class="number medium" id="medium">—</div></div>
+    <div class="card"><small>Total findings</small><div class="number" id="total">—</div></div>
+  </section>
+
+  <section class="layout">
+    <div class="panel">
+      <h2>Risk distribution</h2>
+      <div id="riskChart" class="empty">Waiting for assessment data...</div>
+    </div>
+    <div class="panel">
+      <h2>Assessment summary</h2>
+      <div id="summary" class="empty">Loading...</div>
+    </div>
+  </section>
+
+  <section class="panel" style="margin-bottom:18px">
+    <h2>Prioritized security findings</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Severity</th><th>Issue</th><th>Resource / Identity</th><th>Risk score</th><th>Priority</th></tr></thead>
+        <tbody id="findings"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="layout">
+    <div class="panel">
+      <h2>Detected attack paths</h2>
+      <div id="attacks" class="empty">Loading...</div>
+    </div>
+    <div class="panel">
+      <h2>Remediation recommendations</h2>
+      <div id="recommendations" class="empty">Loading...</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Recent assessment history</h2>
+    <div id="history" class="empty">Loading...</div>
+  </section>
+</main>
+
+<footer>CloudGuard AI · Cloud Security Posture and Attack Path Analyzer · Local lab edition</footer>
+
+<script>
+const el = id => document.getElementById(id);
+const safe = value => String(value ?? "—").replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const list = value => Array.isArray(value) ? value : [];
+
+function badge(severity) {
+  const s = String(severity || "UNKNOWN").toUpperCase();
+  return `<span class="badge ${safe(s)}">${safe(s)}</span>`;
+}
+
+function renderItems(container, items, renderer, emptyText) {
+  container.innerHTML = items.length
+    ? items.map(renderer).join("")
+    : `<div class="empty">${safe(emptyText)}</div>`;
+}
+
+async function loadDashboard() {
+  el("generated").textContent = "Refreshing assessment data...";
+  try {
+    const response = await fetch("/dashboard-data", {cache:"no-store"});
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    const report = data.latest;
+    if (!report) throw new Error("No assessment reports found.");
+
+    const results = report.results || {};
+    const risk = results.risk_analysis || {};
+    const findings = list(risk.findings);
+    const summary = report.assessment_summary || {};
+
+    const counts = {CRITICAL:0,HIGH:0,MEDIUM:0,LOW:0};
+    findings.forEach(f => {
+      const s = String(f.severity || "").toUpperCase();
+      if (s in counts) counts[s]++;
+    });
+
+    ["critical","high","medium"].forEach(k =>
+      el(k).textContent = counts[k.toUpperCase()]);
+    el("total").textContent = findings.length;
+
+    const colors = {CRITICAL:"var(--red)",HIGH:"var(--orange)",
+      MEDIUM:"var(--blue)",LOW:"var(--green)"};
+
+    el("riskChart").innerHTML = Object.entries(counts).map(([name,count]) => {
+      const width = findings.length ? count / findings.length * 100 : 0;
+      return `<div class="bar-row">
+        <span>${name}</span>
+        <div class="bar"><div class="fill" style="width:${width}%;background:${colors[name]}"></div></div>
+        <strong>${count}</strong>
+      </div>`;
+    }).join("");
+
+    el("summary").innerHTML = `
+      <div class="item"><strong>Cloud findings</strong><p>${safe(summary.cloud_findings ?? 0)}</p></div>
+      <div class="item"><strong>IAM findings</strong><p>${safe(summary.iam_findings ?? 0)}</p></div>
+      <div class="item"><strong>Attack paths detected</strong><p>${safe(summary.attack_paths_detected ?? 0)}</p></div>
+      <div class="item"><strong>Recommendations generated</strong><p>${safe(summary.recommendations_generated ?? 0)}</p></div>
+    `;
+
+    el("findings").innerHTML = findings.length ? findings.map(f => `
+      <tr>
+        <td>${badge(f.severity)}</td>
+        <td>${safe(f.issue || f.attack_path)}</td>
+        <td>${safe(f.resource_id || f.target_resource || f.username || f.identity)}</td>
+        <td>${safe(f.risk_score ?? "—")}</td>
+        <td>${safe(f.priority || "—")}</td>
+      </tr>`).join("") : `<tr><td colspan="5">No findings recorded.</td></tr>`;
+
+    const attacks = list((results.attack_path_analysis || {}).attack_paths);
+    renderItems(el("attacks"), attacks, a => `
+      <div class="item">
+        <strong>${safe(a.identity)} → ${safe(a.target_resource)}</strong>
+        ${badge(a.severity)}
+        <p>${safe(a.attack_path)}</p>
+        <p>Risk factors: ${safe(list(a.risk_factors).join(", "))}</p>
+        <p>Remediation: ${safe(a.recommendation)}</p>
+      </div>`, "No attack paths detected in this assessment.");
+
+    const recs = list((results.recommendations || {}).recommendations);
+    renderItems(el("recommendations"), recs, r => `
+      <div class="item">
+        <strong>${safe(r.issue)}</strong>
+        ${badge(r.severity)}
+        <p>${safe(r.recommended_action)}</p>
+        <p>Verification: ${safe(list(r.verification_steps).join("; "))}</p>
+      </div>`, "No recommendations available.");
+
+    const history = list(data.history);
+    renderItems(el("history"), history, h => `
+      <div class="item">
+        <strong>${safe(h.report_title)}</strong>
+        <p>${safe(h.generated_at)} · ${safe(h.total_findings)} prioritized findings</p>
+        <p>${safe(h.filename)}</p>
+      </div>`, "No assessment history available.");
+
+    el("generated").textContent =
+      `Latest assessment: ${safe(report.generated_at)} · ${safe(report.project)}`;
+  } catch (error) {
+    el("generated").textContent = "Dashboard could not load assessment data.";
+    el("summary").textContent = error.message;
+  }
+}
+
+loadDashboard();
+</script>
+</body>
+</html>

@@ -1,4 +1,7 @@
 
+import json
+from pathlib import Path
+from fastapi.responses import FileResponse
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
@@ -256,3 +259,60 @@ def run_full_assessment(request: FullAssessmentRequest):
         "assessment_results": report
     }
 
+# ==========================================
+# CLOUDGUARD AI SECURITY DASHBOARD
+# ==========================================
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+REPORTS_DIR = BASE_DIR / "reports"
+DASHBOARD_FILE = BASE_DIR / "dashboard" / "index.html"
+
+
+@app.get("/dashboard")
+def security_dashboard():
+    return FileResponse(DASHBOARD_FILE)
+
+
+@app.get("/dashboard-data")
+def dashboard_data():
+    reports = sorted(
+        REPORTS_DIR.glob("cloudguard_report_*.json"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True
+    )
+
+    valid_reports = []
+
+    for report_path in reports:
+        try:
+            with report_path.open("r", encoding="utf-8") as file:
+                report = json.load(file)
+
+            results = report.get("results", {})
+            risk = results.get("risk_analysis", {})
+            findings = risk.get("findings", [])
+
+            valid_reports.append({
+                "report_title": report.get("report_title", "Security Assessment"),
+                "generated_at": report.get("generated_at", ""),
+                "filename": report_path.name,
+                "total_findings": len(findings)
+            })
+
+        except (json.JSONDecodeError, OSError):
+            continue
+
+    latest = None
+
+    if valid_reports:
+        latest_path = REPORTS_DIR / valid_reports[0]["filename"]
+
+        with latest_path.open("r", encoding="utf-8") as file:
+            latest = json.load(file)
+
+    return {
+        "status": "success",
+        "total_reports": len(valid_reports),
+        "latest": latest,
+        "history": valid_reports[:10]
+    }
