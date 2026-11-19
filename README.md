@@ -264,3 +264,13 @@ CloudGuard AI is a practical cybersecurity portfolio project demonstrating Pytho
 **Project Status:** Active Development
 
 **Version:** 1.1.0
+## Screenshots
+
+### API Documentation
+![CloudGuard AI Swagger UI](docs/screenshots/cloudguard-swagger.png)
+
+### Full Assessment Endpoint
+![CloudGuard AI Full Assessment Endpoint](docs/screenshots/cloudguard-assessment-endpoint.png)
+
+### Full Security Assessment Results
+![CloudGuard AI Full Security Assessment](docs/screenshots/cloudguard-full-assessment.png)
