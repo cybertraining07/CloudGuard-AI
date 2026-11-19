@@ -1,0 +1,24 @@
+
+[
+  {
+    "resource_id": "storage-bucket-001",
+    "resource_type": "object_storage",
+    "public_access": true,
+    "encryption_enabled": false,
+    "logging_enabled": false
+  },
+  {
+    "resource_id": "storage-bucket-002",
+    "resource_type": "object_storage",
+    "public_access": false,
+    "encryption_enabled": true,
+    "logging_enabled": true
+  },
+  {
+    "resource_id": "database-001",
+    "resource_type": "database",
+    "public_access": false,
+    "encryption_enabled": false,
+    "logging_enabled": true
+  }
+]
